@@ -21,7 +21,7 @@ utilities. Within your terminal (linux and mac) or Anaconda interpreter (Windows
 
     `$ conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cpuonly -c pytorch`
 
-4. In your terminal or Anaconda interpreter navigate to measureice directory and run the pip install command:
+4. In your terminal or Anaconda interpreter navigate to measureice directory and run the `pip install` command:
 ```    
     $ cd py_multislice
     $ pip install .
@@ -30,7 +30,7 @@ utilities. Within your terminal (linux and mac) or Anaconda interpreter (Windows
 ```
 # Running Measureice
 
-1. First you'll need to generate your calibration data. You need to know your microscope's accelerating voltage and the size of the apertures (in diffraction plane units like inverse Angstrom or mrad, not micron, you can measure this with a diffraction standard like a gold grid). Run Generate_MeasureIce_calibration.py with the --help argument to get more information on how to use the utility.
+1. First you'll need to generate your calibration data. You need to know your microscope's accelerating voltage and the size of the apertures (in diffraction plane units like inverse Angstrom or mrad, not micron, you can measure this with a diffraction standard like a gold grid). Run `Generate_MeasureIce_calibration.py` with the `--help` argument to get more information on how to use the utility.
 ```
 $ python Generate_MeasureIce_calibration.py --help
 
@@ -56,8 +56,11 @@ It will search for .h5 calibration files in the current directory. Alternatively
 ```
 $ python MeasureIce.py /path/to/calibration/files
 ```
-The GUI should look like this
+The GUI should look like this. 
+
 ![MeasureIce GUI](MeasureIceScreenshot.png)
+
+Choose a calibration file (this will match the `--Microscopename` you gave to `Generate_MeasureIce_calibration.py`, if none was supplied it will be a something more generic like 200_keV_TEM), load an image (accepts .mrc, .tif or .ser) with the `Load raw image` button, set I0 either by dragging the red line on the TEM image histogram or manually input into the I0 box and click the `Meaure ice thickness` button. You can read off ice thickness values using by hovering your mouse pointer over the region of interest in the ice thickness panel. Ice thickness maps can be saved in 32-bit tif format or a matplotlib imshow plot in pdf or png format.
 
 3. You can package the program as a stand-alone executable, eg. to run on a microscope support or control PC, using [pyinstaller](https://www.pyinstaller.org/). If you want to run the program on, for example a Windows PC, you'll need to do this step on _that_ operating system.
 ```
