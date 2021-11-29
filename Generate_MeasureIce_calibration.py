@@ -230,7 +230,7 @@ def imfp(E, Mw=18.015, rho=920e3, Z=10):
     Vulović, Miloš, et al. "Image formation modeling in cryo-electron
     microscopy." Journal of structural biology 183.1 (2013): 19-32.
 
-    This is approximate, but if scaled to match experimental measurments
+    This is approximate, but if scaled to match experimental measurements
     gives a useful interpolation for unmeasured electron energies
 
     Parameters:
@@ -297,7 +297,7 @@ def generate_calibration_curves(
     elif abs(keV - 300) < 3:
         lambda_d = 3200
     else:
-        lambda_d = imfp(keV) * 10
+        lambda_d = imfp(keV,Z=14) * 10
 
     # Many routines use eV, not keV so convert now.
     eV = keV * 1e3
@@ -472,14 +472,14 @@ def print_help():
 
 
 if __name__ == "__main__":
-    # print(vulovic.shape)
+    # # print(vulovic.shape)
     # E = np.linspace(50,325)
-    # lambd = imfp(E)
+    # lambd = imfp(E,Z=14)
     # fig,ax=plt.subplots()
     # ax.plot(E,lambd)
-    # ax.plot(vulovic[:,0],vulovic[:,1])
+    # # ax.plot(vulovic[:,0],vulovic[:,1])
     # ax.plot([120,300],[210,320],'ro')
-    # print(imfp(200))
+    # print(imfp(200,Z=14))
     # # plt.show(block=True)
     # fig.savefig('imfp.pdf')
     # import sys;sys.exit()

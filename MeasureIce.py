@@ -166,7 +166,10 @@ def measure_ice_thickness():
     # Gaussian filter TEM image before converting to ice thickness map
     # 2*(kern,) makes a tuple for isotropic x and y blurring kernel
     kern = icemapgausskernel.value()
-    img_filt = pg.gaussianFilter(img.image, 2 * (kern,))
+    if kern>0:
+        img_filt = pg.gaussianFilter(img.image, 2 * (kern,))
+    else:
+        img_filt = img.image
 
     # Calculate thickness map using calibration curve
     # clip function ensures intensities > I0 (due to noise) are not
@@ -326,11 +329,11 @@ win.resize(1600, 600)
 
 # icon for plot window
 app_icon = QtGui.QIcon("icons/icon.ico")
-app_icon.addFile("C:/Users/Hamish/Desktop/GUI/icons/24x24.png", QtCore.QSize(24, 24))
-app_icon.addFile("C:/Users/Hamish/Desktop/GUI/icons/32x32.png", QtCore.QSize(32, 32))
-app_icon.addFile("C:/Users/Hamish/Desktop/GUI/icons/48x48.png", QtCore.QSize(48, 48))
+app_icon.addFile("icons/24x24.png", QtCore.QSize(24, 24))
+app_icon.addFile("icons/32x32.png", QtCore.QSize(32, 32))
+app_icon.addFile("icons/48x48.png", QtCore.QSize(48, 48))
 app_icon.addFile(
-    "C:/Users/Hamish/Desktop/GUI/icons/256x256.png", QtCore.QSize(256, 256)
+    "icons/256x256.png", QtCore.QSize(256, 256)
 )
 win.setWindowIcon(app_icon)
 
@@ -517,7 +520,7 @@ proxybinfactorspin.setWidget(binfactorspin)
 binfactorspin.setValue(2)
 
 # Gaussian filtering for ice thickness image
-icemapgausskernel = QtGui.QSpinBox(maximum=16, minimum=1)
+icemapgausskernel = QtGui.QSpinBox(maximum=16, minimum=0)
 icemapgausskernellabel = QtGui.QLabel()
 icemapgausskernellabel.setStyleSheet("background-color: black; color:white")
 icemapgausskernellabel.setAlignment(QtCore.Qt.AlignCenter)
