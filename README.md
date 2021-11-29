@@ -25,8 +25,7 @@ utilities. Within your terminal (linux and mac) or Anaconda interpreter (Windows
 ```    
     $ cd py_multislice
     $ pip install .
-    $ cd ..
-    $ cd measureIce
+    $ cd ../measureIce
     $ pip install .
 ```
 # Running Measureice
@@ -74,6 +73,7 @@ You can package the program as a stand-alone executable, eg. to run on a microsc
 $ pip install pyinstaller
 $ pyinstaller -i icons/icon.ico --onefile Measureice.py
 ```
+An executable, `Measureice.exe`, should appear in a new folder named `dist`. You can transfer this to your microscope PC, remember to also transfer your .h5 calibration files as well.
 
 # Acknowledgements
 
