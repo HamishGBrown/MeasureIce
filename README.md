@@ -25,6 +25,7 @@ utilities. Within your terminal (linux and mac) or Anaconda interpreter (Windows
 ```    
     $ cd py_multislice
     $ pip install .
+    $ cd ..
     $ cd measureIce
     $ pip install .
 ```
