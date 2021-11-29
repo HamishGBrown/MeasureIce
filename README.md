@@ -66,7 +66,9 @@ Choose a calibration file (this will match the `--Microscopename` you gave to `G
 
 Ice thickness maps can be saved in 32-bit tif format or a matplotlib imshow plot in pdf or png format.
 
-3. You can package the program as a stand-alone executable, eg. to run on a microscope support or control PC, using [pyinstaller](https://www.pyinstaller.org/). If you want to run the program on, for example a Windows PC, you'll need to do this step on _that_ operating system.
+### Want to run MeasureIce on your microscope control PC and don't really want to install python?
+
+You can package the program as a stand-alone executable, eg. to run on a microscope support or control PC, using [pyinstaller](https://www.pyinstaller.org/). If you want to run the program on, for example a Windows PC, you'll need to do this step on _that_ operating system.
 ```
 $ pip install pyinstaller
 $ pyinstaller -i icons/icon.ico --onefile Measureice.py
