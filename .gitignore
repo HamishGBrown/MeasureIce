@@ -1,0 +1,6 @@
+*.pdf
+*.tif
+*.ser
+*.h5
+*.png
+__pycache__/**
