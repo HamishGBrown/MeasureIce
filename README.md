@@ -25,7 +25,7 @@ utilities. Within your terminal (linux and mac) or Anaconda interpreter (Windows
 ```    
     $ cd py_multislice
     $ pip install .
-    $ cd measureIce
+    $ cd ../measureIce
     $ pip install .
 ```
 # Running Measureice
@@ -60,13 +60,20 @@ The GUI should look like this.
 
 ![MeasureIce GUI](MeasureIceScreenshot.png)
 
-Choose a calibration file (this will match the `--Microscopename` you gave to `Generate_MeasureIce_calibration.py`, if none was supplied it will be a something more generic like 200_keV_TEM), load an image (accepts .mrc, .tif or .ser) with the `Load raw image` button, set I0 either by dragging the red line on the TEM image histogram or manually input into the I0 box and click the `Meaure ice thickness` button. You can read off ice thickness values using by hovering your mouse pointer over the region of interest in the ice thickness panel. Ice thickness maps can be saved in 32-bit tif format or a matplotlib imshow plot in pdf or png format.
+Choose a calibration file (this will match the `--Microscopename` you gave to `Generate_MeasureIce_calibration.py`, if none was supplied it will be a something more generic like 200_keV_TEM), load an image (accepts .mrc, .tif or .ser) with the `Load raw image` button, set I0 either by dragging the red line on the TEM image histogram or manually input into the I0 box and click the `Meaure ice thickness` button. You can read off ice thickness values using by hovering your mouse pointer over the region of interest in the ice thickness panel. 
 
-3. You can package the program as a stand-alone executable, eg. to run on a microscope support or control PC, using [pyinstaller](https://www.pyinstaller.org/). If you want to run the program on, for example a Windows PC, you'll need to do this step on _that_ operating system.
+![MeasureIce GUI](MeasureIceScreenshot2.png)
+
+Ice thickness maps can be saved in 32-bit tif format or a matplotlib imshow plot in pdf or png format.
+
+### Want to run MeasureIce on your microscope control PC and don't really want to install python?
+
+You can package the program as a stand-alone executable, eg. to run on a microscope support or control PC, using [pyinstaller](https://www.pyinstaller.org/). If you want to run the program on, for example a Windows PC, you'll need to do this step on _that_ operating system.
 ```
 $ pip install pyinstaller
 $ pyinstaller -i icons/icon.ico --onefile Measureice.py
 ```
+An executable, `Measureice.exe`, should appear in a new folder named `dist`. You can transfer this to your microscope PC, remember to also transfer your .h5 calibration files as well.
 
 # Acknowledgements
 
