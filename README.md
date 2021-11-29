@@ -48,7 +48,7 @@ for measuring ice thickness in cryo-EM
 -M, --Microscopename  Name of microscope (For book-keeping), optional
 -P, --Plot            Generate reference I/I0 vs thickness plot, optional
 ```
-2. Once you have succesfully generate the calibration data, you can run the GUI utility:
+2. Once you have succesfully generated the calibration data, you can run the GUI utility:
 ```
 $ python MeasureIce.py
 ```
