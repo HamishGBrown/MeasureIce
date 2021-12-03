@@ -269,6 +269,7 @@ def generate_calibration_curves(
     waterbox="supercooled_water.xyz",
     DWF=0.01,
     device_type=None,
+    imfp_prov = None,
 ):
     """
     For a given accelerating voltage and set of apertures generate a set
@@ -298,6 +299,11 @@ def generate_calibration_curves(
         lambda_d = 3200
     else:
         lambda_d = imfp(keV,Z=14) * 10
+
+    # If user provides an inelastic mean free path use this instead, 
+    # converting from nm to Angstrom
+    if imfp_prov is not None:
+        lambda_d = imfp_prov*10
 
     # Many routines use eV, not keV so convert now.
     eV = keV * 1e3
@@ -338,6 +344,11 @@ def generate_calibration_curves(
     propagators, transmission_functions = pyms.multislice_precursor(
         water, gridshape, eV, subslices, nT=1
     )
+    # The thickness_to_slices function converts thickness in Angstrom 
+    # (ie. the thickness increment in our thickness to intensity series)
+    # to number of multislice slices - this will be passed to the 
+    # multislice function to advance our electron wave through successive
+    # thicknesses of amorphous ice
     slices = pyms.thickness_to_slices(
         dt, gridsize[2], subslicing=True, subslices=subslices
     )[0]
@@ -362,6 +373,9 @@ def generate_calibration_curves(
 
     for i, t in enumerate(tqdm.tqdm(thicknesses, desc="thicknesses")):
         # Apply multislice algorithm to simulate elastic scattering
+        # Note the tiling = [16,16] which will generate psuedo-random
+        # instances of amorphous ice structure by circularly shifting
+        # our ice box in x and y
         illum = pyms.multislice(
             illum,
             slices,
@@ -468,28 +482,18 @@ def print_help():
         "-M, --Microscopename  Name of microscope (For book-keeping), optional\n"
     )
     description += "-P, --Plot            Generate reference I/I0 vs thickness plot, optional\n"
+    description += "-I, --imfp            User provided electron inelastic mean free path in nm, optional\n"
     print(description)
 
 
 if __name__ == "__main__":
-    # # print(vulovic.shape)
-    # E = np.linspace(50,325)
-    # lambd = imfp(E,Z=14)
-    # fig,ax=plt.subplots()
-    # ax.plot(E,lambd)
-    # # ax.plot(vulovic[:,0],vulovic[:,1])
-    # ax.plot([120,300],[210,320],'ro')
-    # print(imfp(200,Z=14))
-    # # plt.show(block=True)
-    # fig.savefig('imfp.pdf')
-    # import sys;sys.exit()
 
     # Get command line options, input directory, and whether pngs, tiffs or metadata is to be outputted
     import getopt
 
     opts, args = getopt.getopt(
         sys.argv[1:],
-        "hE:A:u:m:o:M:P",
+        "hE:A:u:m:o:M:PI:",
         [
             "help",
             "Electronenergy=",
@@ -499,6 +503,7 @@ if __name__ == "__main__":
             "Outputfilename=",
             "Microscopename=",
             "Plot",
+            "imfp=",
         ],
     )
 
@@ -510,6 +515,7 @@ if __name__ == "__main__":
     outputfilename = "Calibration.hdf"
     microscopename = None
     plot = False
+    imfp_prov = None
 
     dir_ = sys.argv[0]
     if len(opts)<1:
@@ -537,6 +543,8 @@ if __name__ == "__main__":
             microscopename = a
         elif o == "-P" or o == "--Plot":
             plot = True
+        elif o =='-I' or o == "--imfp":
+            imfp_prov = float(a)
         else:
             assert False, "unhandled option {0}".format(o)
 
@@ -586,7 +594,7 @@ if __name__ == "__main__":
 
     # Generate thickness calibration curves
     thicknesses, LogII0 = generate_calibration_curves(
-        keV, obj_apertures, app_units=app_units
+        keV, obj_apertures, app_units=app_units,imfp_prov=imfp_prov
     )
 
     # Plot calibration curves if requested
