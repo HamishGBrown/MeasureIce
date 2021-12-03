@@ -77,6 +77,6 @@ An executable, `Measureice.exe`, should appear in a new folder named `dist`. You
 
 # Acknowledgements
 
-This work was a collaboration with [Prof. Eric Hanssen](https://findanexpert.unimelb.edu.au/profile/333629-eric-hanssen). Code for [reading ser files](https://github.com/ercius/openNCEM) is written by [Peter Ercius](https://github.com/ercius) of the National Centre for Electron Microscopy.
+This work was done in partnership with [Prof. Eric Hanssen](https://findanexpert.unimelb.edu.au/profile/333629-eric-hanssen) at the [Ian Holmes Imaging Center](https://microscopy.unimelb.edu.au/em). Code for [reading ser files](https://github.com/ercius/openNCEM) is written by [Peter Ercius](https://github.com/ercius) of the National Centre for Electron Microscopy.
 
 
