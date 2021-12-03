@@ -298,7 +298,7 @@ def generate_calibration_curves(
     elif abs(keV - 300) < 3:
         lambda_d = 3200
     else:
-        lambda_d = imfp(keV,Z=14) * 10
+        lambda_d = imfp(keV,Z=13.24) * 10
 
     # If user provides an inelastic mean free path use this instead, 
     # converting from nm to Angstrom
