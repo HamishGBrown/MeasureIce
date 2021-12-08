@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/432874462.svg)](https://zenodo.org/badge/latestdoi/432874462)
 # MeasureIce
 
 ![MeasureIce logo](./icons/256x256.png)
