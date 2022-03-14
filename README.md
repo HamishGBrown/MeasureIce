@@ -48,6 +48,7 @@ for measuring ice thickness in cryo-EM
 -o, --Outputfilename  Output .h5 filename (default Calibration.h5), optional
 -M, --Microscopename  Name of microscope (For book-keeping), optional
 -P, --Plot            Generate reference I/I0 vs thickness plot, optional
+-I, --imfp            User provided electron inelastic mean free path in nm, optional
 ```
 2. Once you have succesfully generated the calibration data, you can run the GUI utility:
 ```
