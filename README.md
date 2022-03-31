@@ -20,7 +20,7 @@ utilities. Within your terminal (linux and mac) or Anaconda interpreter (Windows
 ```
 3. The multislice library requires a version of the pytorch library before 1.8.0 eg. 1.7.0 (the py_multislice library is incompatible with changes to the Fast Fourier transform libraries made for version 1.8.0 and after, rectifying this is a work in progress...). See instructions [here](https://pytorch.org/get-started/previous-versions/). Since the multislice component of the simulations is not particularly intensive it is simpler just to use the cpuonly version of this library eg:
 
-    `$ conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cpuonly -c pytorch`
+    `$ conda install pytorch torchvision torchaudio cpuonly -c pytorch`
 
 4. In your terminal or Anaconda interpreter navigate to measureice directory and run the `pip install` command:
 ```    
