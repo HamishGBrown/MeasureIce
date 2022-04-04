@@ -10,6 +10,14 @@ import torch
 import os
 import torch
 
+def straight_line(x, m):
+    """ Straight line function y=f(x) """
+    return m*x
+
+def straight_line_w_intercept(x,m,c):
+    return m*x+c
+
+
 
 def invA_to_mrad(invA, eV):
     """Convert inverse Angstrom to mrad
@@ -256,6 +264,32 @@ def imfp(E, Mw=18.015, rho=920e3, Z=10):
         / np.log(betasqr * (E * 1e3 + mcsqr) / 10)
     )
 
+def carbon_imfp(eV):
+    """Calculate inelastic mean free path in nm for amorphous carbon."""
+    data = np.asarray([[71.95811469176782, 6492.6028902254875],
+        [119.63625785913935, 7130.633928791563],
+        [190.9779470418646, 9408.437214026815],
+        [376.1496069126305, 13369.322510759523],
+        [610.7176162238331, 19097.182408282333],
+        [991.5629311098909, 27454.874387390308],
+        [1609.9045127116265, 40497.73175277928],
+        [2613.845736597052, 59929.005656978676],
+        [4243.847682132933, 88968.9732655457],
+        [6890.323670207287, 132932.2494436579],
+        [11187.149925314328, 200543.01114977678],
+        [18163.4897635651, 309719.95607402036],
+        [29490.295794159905, 449144.634629818],
+        [47880.53162402578, 654058.9873241475],
+        [77738.97300322555, 956550.268801701],
+        [126217.22688984855, 1297912.8948451944],
+        [203925.91061759694, 1751693.3152705648],
+        [321904.7658535461, 2121215.6313316543],
+        [532328.7996896341, 2573736.8871517177],
+        [803098.6830720035, 2810661.4692487745]]).T
+    data[1] /= 1e4
+    from scipy.interpolate import interp1d
+    func = interp1d(data[0],data[1])
+    return func(eV)
 
 def generate_calibration_curves(
     keV,
@@ -270,6 +304,8 @@ def generate_calibration_curves(
     DWF=0.01,
     device_type=None,
     imfp_prov = None,
+    carbon_thickness = None,
+    carbonbox="Amorphous_carbon.xyz",
 ):
     """
     For a given accelerating voltage and set of apertures generate a set
@@ -300,14 +336,14 @@ def generate_calibration_curves(
     else:
         lambda_d = imfp(keV,Z=13.24) * 10
 
-    # If user provides an inelastic mean free path use this instead, 
+    # If user provides an inelastic mean free path use this instead,
     # converting from nm to Angstrom
     if imfp_prov is not None:
         lambda_d = imfp_prov*10
 
     # Many routines use eV, not keV so convert now.
     eV = keV * 1e3
-    
+
     # Theta_E is linearly interpolated from experimental measurements results
     # Since this mainly effects small angle inelastic scattering the result is
     # not so sensitive to it.
@@ -321,7 +357,7 @@ def generate_calibration_curves(
     napp = len(obj_apertures)
 
     # Initialize
-    LogI0I = np.zeros((nt, napp))
+    LogI0I = np.zeros((nt+1, napp))
 
     # Use the GPU for the mutlislice calculation if it is not available
     if device_type is None and torch.cuda.is_available():
@@ -331,7 +367,7 @@ def generate_calibration_curves(
 
     # Read in water box
     water = pyms.structure.fromfile(waterbox, atomic_coordinates="cartesian")
-    print("Structure read in")
+    print("Ice structure read in")
     water.atoms[:, 5] = DWF
 
     # Tile out structure in x and y direction
@@ -342,18 +378,19 @@ def generate_calibration_curves(
 
     # Generate multislice precursors
     propagators, transmission_functions = pyms.multislice_precursor(
-        water, gridshape, eV, subslices, nT=1
+        water, gridshape, eV, subslices, nT=1,showProgress=False
     )
-    # The thickness_to_slices function converts thickness in Angstrom 
+    # The thickness_to_slices function converts thickness in Angstrom
     # (ie. the thickness increment in our thickness to intensity series)
-    # to number of multislice slices - this will be passed to the 
+    # to number of multislice slices - this will be passed to the
     # multislice function to advance our electron wave through successive
     # thicknesses of amorphous ice
     slices = pyms.thickness_to_slices(
         dt, gridsize[2], subslicing=True, subslices=subslices
     )[0]
 
-    # Generate aperture masks
+    # Generate aperture masks (the function calledgenerates a strong-phase 
+    # contrast transfer function with a 0 defocus)
     apps = (
         np.abs(
             np.stack(
@@ -367,9 +404,65 @@ def generate_calibration_curves(
     )
 
     # Generate illumination
-    illum = pyms.utils.cx_from_numpy(
-        pyms.plane_wave_illumination(gridshape, gridsize, eV, qspace=True)
-    )
+    illum = torch.from_numpy(pyms.plane_wave_illumination(gridshape, gridsize, eV, qspace=True))
+
+    # Option to calculate carbon thickness
+    if carbon_thickness is not None:
+        # Read in carbon box
+        carbon = pyms.structure.fromfile(carbonbox, atomic_coordinates="cartesian")
+        
+        # Match carbon to ice size in x and y by tiling it out (if necessary) and cropping it
+        ctiling = np.round(water.unitcell[:2]/carbon.unitcell[:2]).astype(int)
+        if np.any(ctiling>1):
+            carbon = tile_out_amorphous_structure(water, *ctiling)
+        # Crop down (possibly tiled carbon) to the size of the water box
+        resize = np.stack([np.zeros(2),water.unitcell[:2]/carbon.unitcell[:2]],axis=1)
+        carbon = carbon.resize(resize,[0,1])
+
+        cgridsize = carbon.unitcell[:3]
+        cn = int(np.round(cgridsize[2] / slicethick))
+        csubslices = (np.arange(cn) + 1) / cn
+        print("Carbon structure read in")
+        carbon.atoms[:, 5] = DWF
+        cslices = pyms.thickness_to_slices(
+            carbon_thickness*10, cgridsize[2], subslicing=True, subslices=csubslices
+        )[0]
+
+        # Do multislice through carbon
+        cpropagators, ctransmission_functions = pyms.multislice_precursor(
+            carbon, gridshape, eV, subslices, nT=1,showProgress=False
+        )
+        Image.fromarray(np.abs(transmission_functions.cpu().numpy()[0,0])).save('T.tif')
+        Image.fromarray(np.angle(transmission_functions.cpu().numpy()[0,0])).save('T_phase.tif')
+        illum = pyms.multislice(
+                illum,
+                cslices,
+                cpropagators,
+                ctransmission_functions,
+                tiling=[16, 16],
+                device_type=device,
+                return_numpy=False,
+                output_to_bandwidth_limit=False,
+                subslicing=True,
+                qspace_in=True,
+                qspace_out=True,
+            )
+        # Caculate intensity of diffraction pattern
+        DP = np.abs(illum.cpu().numpy()) ** 2
+
+        # Apply plasmon scattering to Reciprocal space intensity
+        # (assume incoherent energy channels -- don't tell Prof. Peter Schattschneider)
+        if carbon_thickness is not None:
+            DP_inel = plas_scatt(DP, gridshape, gridsize, theta_E, eV, carbon_thickness*10, carbon_imfp(eV)*10)
+        # Apply objective aperture to Recipiprocal space intensity
+        DP_inel = apply_objective_aperture(
+            DP_inel, gridsize, apps, eV, qspace_in=True, app_units=app_units
+        )
+        # Record plasmon scattered intensity in look-up table
+        LogI0I[0] = np.log(np.prod(gridshape) / np.sum(DP_inel, axis=(1, 2)))
+        
+    else:
+        LogI0I[0] = 0
 
     for i, t in enumerate(tqdm.tqdm(thicknesses, desc="thicknesses")):
         # Apply multislice algorithm to simulate elastic scattering
@@ -391,21 +484,24 @@ def generate_calibration_curves(
         )
 
         # Caculate intensity of diffraction pattern
-        DP = np.abs(pyms.utils.cx_to_numpy(illum)) ** 2
+        DP = np.abs(illum.cpu().numpy()) ** 2
 
         # Apply plasmon scattering to Reciprocal space intensity
         # (assume incoherent energy channels -- don't tell Prof. Peter Schattschneider)
+        if carbon_thickness is not None:
+            DP = plas_scatt(DP, gridshape, gridsize, theta_E, eV, carbon_thickness*10, carbon_imfp(eV)*10)
         DP_inel = plas_scatt(DP, gridshape, gridsize, theta_E, eV, t, lambda_d)
+        
 
         # Apply objective aperture to Recipiprocal space intensity
         DP_inel = apply_objective_aperture(
             DP_inel, gridsize, apps, eV, qspace_in=True, app_units=app_units
         )
         # Record plasmon scattered intensity in look-up table
-        LogI0I[i] = np.log(np.prod(gridshape) / np.sum(DP_inel, axis=(1, 2)))
+        LogI0I[i+1] = np.log(np.prod(gridshape) / np.sum(DP_inel, axis=(1, 2)))
 
     # Return results with origin concatenated (necessary for plotting and interpolation)
-    return np.concatenate(([0],thicknesses)), np.concatenate([np.zeros((1,napp)),LogI0I],axis=0)
+    return np.concatenate(([0],thicknesses)), LogI0I
 
 
 def make_plot(
@@ -421,29 +517,36 @@ def make_plot(
     if labels is None:
         labels = [None] * len(obj_apertures)
 
+    mdpnt = len(thicknesses)//2
     for I, c, label in zip(logII0.T, colors, labels):
+        lam = fit_straight_line(thicknesses/10,I)
+        ax.plot(thicknesses / 10, np.exp(-I), linestyle="-", label=label+' {0:4d}'.format(int(1/lam)), c=c)
 
-        ax.plot(thicknesses / 10, np.exp(-I), linestyle="-", label=label, c=c)
-        
+        ax.text(thicknesses[mdpnt]/10,np.exp(-I[mdpnt])*1.05,r'$\lambda={0:4d}$'.format(int(1/lam)))
+
     ax.legend()
     ax.set_ylabel("I/I$_0$")
     ax.set_xlim([0.0, thicknesses.max() / 10])
     ax.set_ylim([max(0.1, np.exp(-logII0).min() - 0.2), 1])
     ax.set_yscale("log")
     ax.set_xlabel("Thickness (nm)")
+
     # ax.set_ylim([0, tmax / 10])
     ax.set_title(title)
-    fig.tight_layout()
+    # fig.tight_layout()
     return fig
 
 
 def save_calibrationhdf5(
-    filename, keV, microscopename, thicknesses, LogII0, obj_apertures, appunits
+    filename, keV, microscopename, thicknesses, LogII0, obj_apertures, appunits,Aperturemicron
 ):
     # Force h5 filename extension
     outputfilename = os.path.splitext(filename)[0] + ".h5"
     # Initialise output file
     with h5py.File(outputfilename, "w") as f:
+        lam = []
+        for I in LogII0.T:
+            lam.append(1/fit_straight_line(thicknesses,I))
 
         attributes = {
             "Electron energy": keV,
@@ -451,19 +554,63 @@ def save_calibrationhdf5(
             "Aperture units": appunits,
         }
 
-        floatarrays = {'Apertures': obj_apertures,"Thicknesses":thicknesses,"LogI0/I":LogII0}
-
+        floatarrays = {'Apertures': obj_apertures,"Thicknesses":thicknesses,"LogI0/I":LogII0,"ALS coefficients":lam}
         intarrays = {'Apertures micron' : Aperturemicron}
 
 
         for key, val in attributes.items():
             f.attrs[key] = val
-        
+
         for key, val in floatarrays.items():
             f.create_dataset(key, data=np.asarray(val), dtype=float)
 
         for key, val in intarrays.items():
             f.create_dataset(key, data=np.asarray(val), dtype=int)
+
+def fit_straight_line(x,y,force_zero_origin=False):
+    """
+    For arrays x and y fit a straight line and return the slope and intercept.
+
+    Parameters
+    ----------
+    x, array_like (n,) : x datapoints
+    y, array_like (n,) : y datapoints
+    force_zero_origin, bool, optional : If True (default) force an axis
+                                        intercept at (0,0)
+
+    """
+    from scipy.optimize import curve_fit
+    # The origin is an optional parameter in the straight_line function
+    # setting the starting point p0
+    if force_zero_origin:
+        func = straight_line
+    else:
+        func =straight_line_w_intercept
+    popt, pcov = curve_fit(func, x,y)
+    return popt[0]
+
+def output_result(keV, microscopename, thicknesses, LogII0, obj_apertures, appunits,Aperturemicron,carbon=None):
+
+    line = "For objective aperture #{0}: {1} {2} (labelled {3}) lambda = {4:4d}\n"
+    cstring = ''
+    if carbon is not None:
+        cstring = " with a carbon layer of thickness {0} nm".format(carbon)
+    description = "MeasureIce results for {0}, a {1} kV TEM".format(microscopename,int(keV))
+    description += cstring + ": \n"
+    description += "The value lambda (often referred to as the ALS coefficient) can\n"
+    description += "be used in software such as Leginon and SerialEM\n\n"
+    description += "For more information see:\n\n"
+    description += 'Rice, William J., et al. "Routine determination of ice thickness \n'
+    description += 'for cryo-EM grids." Journal of structural biology 204.1 (2018): 38-44. (Leginon)\n\n'
+    description += 'Rheinberger, Jan, et al. "Optimized cryo-EM data-acquisition workflow\n'
+    description += 'by sample-thickness determination." Acta Crystallographica Section D: \n'
+    description += 'Structural Biology 77.5 (2021). (Serial-EM)\n\n'
+    description += "---------------------------------------------\n\n"
+    for i,par in enumerate(zip(LogII0.T,obj_apertures,Aperturemicron)):
+        lam = fit_straight_line(thicknesses/10,par[0])
+        description += line.format(i, par[1],appunits,par[2],int(np.round(1/lam)))
+    print(description)
+
 
 
 def print_help():
@@ -483,6 +630,7 @@ def print_help():
     )
     description += "-P, --Plot            Generate reference I/I0 vs thickness plot, optional\n"
     description += "-I, --imfp            User provided electron inelastic mean free path in nm, optional\n"
+    description += "-C, --carbon          Option of adding an amorphous carbon layer to simulate carbon backed grids\n"
     print(description)
 
 
@@ -493,7 +641,7 @@ if __name__ == "__main__":
 
     opts, args = getopt.getopt(
         sys.argv[1:],
-        "hE:A:u:m:o:M:PI:",
+        "hE:A:u:m:o:M:PI:C:",
         [
             "help",
             "Electronenergy=",
@@ -504,6 +652,7 @@ if __name__ == "__main__":
             "Microscopename=",
             "Plot",
             "imfp=",
+            "carbon=",
         ],
     )
 
@@ -516,6 +665,7 @@ if __name__ == "__main__":
     microscopename = None
     plot = False
     imfp_prov = None
+    carbon = None
 
     dir_ = sys.argv[0]
     if len(opts)<1:
@@ -545,6 +695,8 @@ if __name__ == "__main__":
             plot = True
         elif o =='-I' or o == "--imfp":
             imfp_prov = float(a)
+        elif o =='-C' or o == '--carbon':
+            carbon = float(a)
         else:
             assert False, "unhandled option {0}".format(o)
 
@@ -558,7 +710,7 @@ if __name__ == "__main__":
         labelunits = "micron"
     else:
         labelunits = app_units
-    lenerror = "Require an equal number of arguements to --Aperturesizes (got {0}) and --Aperturemicron (got {1})".format(
+    lenerror = "Require an equal number of arguments to --Aperturesizes (got {0}) and --Aperturemicron (got {1})".format(
         len(obj_apertures), len(Aperturemicron)
     )
     assert len(Aperturemicron) == len(obj_apertures), lenerror
@@ -580,6 +732,8 @@ if __name__ == "__main__":
         outputstring += " and will be plotted to file {0}.".format(plotfile)
     else:
         outputstring += "."
+    if carbon is not None:
+        outputstring += ' A carbon layer of thickness {0} nm will be included in simulations.'.format(carbon)
     outputstring = outputstring.format(
         microscopename,
         keV,
@@ -594,7 +748,7 @@ if __name__ == "__main__":
 
     # Generate thickness calibration curves
     thicknesses, LogII0 = generate_calibration_curves(
-        keV, obj_apertures, app_units=app_units,imfp_prov=imfp_prov
+        keV, obj_apertures, app_units=app_units,imfp_prov=imfp_prov,carbon_thickness=carbon
     )
 
     # Plot calibration curves if requested
@@ -605,7 +759,10 @@ if __name__ == "__main__":
         fig = make_plot(thicknesses, LogII0, title=title, labels=labels)
         fig.savefig(plotfile)
 
+    output_result(keV, microscopename, thicknesses, LogII0, obj_apertures, app_units,Aperturemicron,carbon=carbon)
+
     # Save this in an hdf5 file for the MeasureIce GUI
+    print('\nOutputting {0} for use with the MeasureIce GUI\n'.format(outputfilename))
     save_calibrationhdf5(
         outputfilename,
         keV,
@@ -614,4 +771,5 @@ if __name__ == "__main__":
         LogII0,
         obj_apertures,
         app_units,
+        Aperturemicron
     )
