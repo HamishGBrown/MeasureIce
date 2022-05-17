@@ -18,7 +18,7 @@ utilities. Within your terminal (linux and mac) or Anaconda interpreter (Windows
     $ conda create --name measureice
     $ conda activate measureice
 ```
-3. The multislice library requires a version of the pytorch library before 1.8.0 eg. 1.7.0 (the py_multislice library is incompatible with changes to the Fast Fourier transform libraries made for version 1.8.0 and after, rectifying this is a work in progress...). See instructions [here](https://pytorch.org/get-started/previous-versions/). Since the multislice component of the simulations is not particularly intensive it is simpler just to use the cpuonly version of this library eg:
+3. The multislice package requires the pytorch library to be installed for calculations on the CPU and GPU. Since the multislice component of the MeasureIce simulations is not particularly intensive and compatability between different systems and version of CUDA etc. can often cause severe headaches it is almost always simpler just to use the cpuonly version of this library eg:
 
     `$ conda install pytorch torchvision torchaudio cpuonly -c pytorch`
 
@@ -26,7 +26,7 @@ utilities. Within your terminal (linux and mac) or Anaconda interpreter (Windows
 ```    
     $ cd py_multislice
     $ pip install .
-    $ cd ../measureIce
+    $ cd ../Measureice
     $ pip install .
 ```
 # Running Measureice
@@ -58,7 +58,7 @@ It will search for .h5 calibration files in the current directory. Alternatively
 ```
 $ python MeasureIce.py /path/to/calibration/files
 ```
-The GUI should look like this. 
+Failing either of the above approaches MeasureIce will simply prompt you for calibration files. The GUI should look like this. 
 
 ![MeasureIce GUI](MeasureIceScreenshot.png)
 
