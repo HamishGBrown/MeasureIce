@@ -9,6 +9,7 @@ setup(
     author_email="hgbrown@unimelb.edu.au",
     url="https://github.com/HamishGBrown/measureIce/",
     packages=find_packages(),
+    scripts=['Generate_MeasureIce_calibration.py', 'MeasureIce.py'],
     install_requires=[
         "h5py >= 2.10",
         "ipython >= 4.0",
@@ -16,7 +17,7 @@ setup(
         "matplotlib >= 3.0",
         "numpy",
         "Pillow >= 6.0",
-        "torch < 1.8.0",
+        "torch >= 1.8.0",
         "tqdm >= 4.48",
         "ase",
         "pypng",

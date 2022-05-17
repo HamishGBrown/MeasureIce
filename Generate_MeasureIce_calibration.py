@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import h5py
 import copy
 import tqdm
@@ -389,7 +390,7 @@ def generate_calibration_curves(
         dt, gridsize[2], subslicing=True, subslices=subslices
     )[0]
 
-    # Generate aperture masks (the function calledgenerates a strong-phase 
+    # Generate aperture masks (the function calledgenerates a strong-phase
     # contrast transfer function with a 0 defocus)
     apps = (
         np.abs(
@@ -410,7 +411,7 @@ def generate_calibration_curves(
     if carbon_thickness is not None:
         # Read in carbon box
         carbon = pyms.structure.fromfile(carbonbox, atomic_coordinates="cartesian")
-        
+
         # Match carbon to ice size in x and y by tiling it out (if necessary) and cropping it
         ctiling = np.round(water.unitcell[:2]/carbon.unitcell[:2]).astype(int)
         if np.any(ctiling>1):
@@ -460,7 +461,7 @@ def generate_calibration_curves(
         )
         # Record plasmon scattered intensity in look-up table
         LogI0I[0] = np.log(np.prod(gridshape) / np.sum(DP_inel, axis=(1, 2)))
-        
+
     else:
         LogI0I[0] = 0
 
@@ -491,7 +492,7 @@ def generate_calibration_curves(
         if carbon_thickness is not None:
             DP = plas_scatt(DP, gridshape, gridsize, theta_E, eV, carbon_thickness*10, carbon_imfp(eV)*10)
         DP_inel = plas_scatt(DP, gridshape, gridsize, theta_E, eV, t, lambda_d)
-        
+
 
         # Apply objective aperture to Recipiprocal space intensity
         DP_inel = apply_objective_aperture(

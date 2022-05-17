@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 GUI for measuring ice thickness
 """
@@ -22,6 +23,7 @@ from os.path import splitext
 from os.path import split as pathsplit
 from os.path import exists as pathexists
 from os.path import join as pathjoin
+from os.path import dirname
 from PIL.Image import open as tifopen
 from PIL.Image import fromarray
 import pyqtgraph as pg
@@ -98,7 +100,6 @@ def set_raw_image(data, resetiso_line=True, resetposition=True):
         msg = "<br>Warning, image appears to have been renormalized to satisfy"
         msg += "<br>data type bit depth. Caution required when comparing"
         msg += "<br>intensities between different images"
-        print(msg)
         add_warning_message(msg)
     else:
         add_warning_message("")
@@ -137,7 +138,6 @@ def load_image(yflip=True, transpose=False):
             return ser.serReader(file)["data"]
 
     data = asarray(openfunc(fnam[0]))
-    print(yflip)
     if yflip:
         data = data[::-1]
 
@@ -253,6 +253,11 @@ def bin2d(array, factor):
 
 
 def nocalibrationfile(fnam):
+    # Get filename from open file dialog
+    fnam = QtGui.QFileDialog.getOpenFileName(
+        None, "Open calibration file", "", "*.h5 *.hdf"
+    )
+    return fnam[0]
     """Error message for when calibration files cannot be found."""
     errmsg = "Can't find any .h5 calibration files in directory {0}".format(fnam)
     print(errmsg)
@@ -301,7 +306,7 @@ def load_calibration_data(path=None):
         fnams = glob(pathjoin(path_, "*.h5"))
 
     if len(fnams) < 1:
-        nocalibrationfile(path_)
+        fnams = glob(pathjoin(dirname(nocalibrationfile(path_)), "*.h5"))
 
     calibrations = []
     for f in fnams:
@@ -574,7 +579,5 @@ if __name__ == "__main__":
             h5path = pathsplit(sys.argv[0])[0]
         # Load calibration data
         calibrations = load_calibration_data(h5path)
-        # print('hi')
         chooseCalibration.addItems([x.name for x in calibrations])
-        # chooseAperture.addItems([x.applabels for x in calibrations])
         QtGui.QApplication.instance().exec_()
